@@ -1,6 +1,6 @@
 
 import client from './client';  // Adjust the import path based on your file structure
-import avatarPath from '../assets/avatar.jpg';  // Import the default avatar image
+// import avatarPath from '../assets/avatar.jpg';  // Import the default avatar image
 export const getCurrentUser = async () => {
   try {
     const response = await client.post('/user/currentUser');
