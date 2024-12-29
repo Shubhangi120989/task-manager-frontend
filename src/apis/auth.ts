@@ -39,8 +39,8 @@ export async function login(credentials: LoginRequest, dispatch: any): Promise<J
 export async function googleLogin(): Promise<void> {
   try {
     // Redirect to Google OAuth2 login page
-    // @ts-expect-error "location"
-    window.location.href = `${import.meta.VITE_API_BASE_URL}/oauth2/authorization/google`;
+    
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
     // await client.get('/oauth2/authorization/google');
     
   } catch (error: any) {
