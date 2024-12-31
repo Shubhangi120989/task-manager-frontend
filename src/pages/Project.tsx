@@ -362,27 +362,27 @@ console.log("items",items);
 
     switch (columnKey) {
       case "title":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small capitalize">{cellValue}</p>
-          </div>
-        );
+      return (
+        <div className="flex flex-col">
+        <p className="text-bold text-small capitalize cursor-pointer" onClick={() => handleOnViewClick(project)}>{cellValue}</p>
+        </div>
+      );
       case "description":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small capitalize">{cellValue}</p>
-          </div>
-        );
-        case "createdAt":
-        case "updatedAt":
-          if(!cellValue) return null;
-          const date = new Date(cellValue as string);
-          const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
-          return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small">{formattedDate}</p>
-            </div>
-          );
+      return (
+        <div className="flex flex-col">
+        <p className="text-bold text-small capitalize cursor-pointer" onClick={() => handleOnViewClick(project)}>{cellValue}</p>
+        </div>
+      );
+      case "createdAt":
+      case "updatedAt":
+      if(!cellValue) return null;
+      const date = new Date(cellValue as string);
+      const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()}`;
+      return (
+        <div className="flex flex-col">
+        <p className="text-bold text-small">{formattedDate}</p>
+        </div>
+      );
       case "actions":
         return (
           <div className="relative flex justify-end items-center gap-2">

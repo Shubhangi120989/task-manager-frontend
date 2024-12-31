@@ -38,7 +38,7 @@ import {
     // Link,
   } from "@nextui-org/react";
 import {useSelector } from "react-redux";
-import { createTask, deleteTask, getTaskOfProject, updateTask, updateTaskStatus } from "../apis/task";
+import { createTask, deleteTask, updateTask, updateTaskStatus } from "../apis/task";
 import { Task } from "../types/task";
 // import { nav } from "framer-motion/client";
 import { useNavigate, useParams } from "react-router-dom";
@@ -230,8 +230,17 @@ const priorityColorMap: Record<string, ChipProps["color"]> = {
 const INITIAL_VISIBLE_COLUMNS = ["title", "description", "status", "priority", "dueDate","actions"];
 
 // type Task = (typeof tasks)[0];
+interface TasksProps {
 
-export default function App() {
+    tasks: Task[];
+  
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+    loading:boolean;
+    setLoading:React.Dispatch<React.SetStateAction<boolean>>;
+  
+  }
+  
+const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
     const [filterValue, setFilterValue] = React.useState("");
     const [visibleColumns, setVisibleColumns] = React.useState<Set<string>>(
         new Set(INITIAL_VISIBLE_COLUMNS),
@@ -242,7 +251,7 @@ export default function App() {
         column: "age",
         direction: "ascending",
     });
-    const [tasks, setTasks] = React.useState<Task[]>([]);
+    // const [tasks, setTasks] = React.useState<Task[]>([]);
 
     const {isOpen, onOpen, onOpenChange} = useDisclosure();
     const [title, setTitle] = React.useState("");
@@ -251,8 +260,9 @@ export default function App() {
     const [taskDeadlineDate, setTaskDeadlineDate] = React.useState<DateValue | null | undefined>(null);
     const [editTaskId, setEditTaskId] = React.useState<string | null>(null);
     const [status, setStatus] = React.useState<"TO_DO"|"DONE"|"IN_PROGRESS">( "TO_DO"); 
-    const[loading,setLoading]=React.useState(false); 
-    const [deleteLoading,setDeleteLoading]=React.useState(false);   
+    // const[loading,setLoading]=React.useState(false); 
+    const [deleteLoading,setDeleteLoading]=React.useState(false); 
+    // const [canvas,setCanvas]=React.useState(false);   
     
     const params = useParams(); // Fixed typo from 'prams' to 'params'
     const projectId = params.projectId;
@@ -329,14 +339,18 @@ export default function App() {
         switch (columnKey) {
             case "title":
                 return (
-                        <div className="flex flex-col">
-                        <p className="text-bold text-small capitalize">{cellValue}</p>
+                        // <Link to={`task/${task.taskId}`} >
+                            <div className="flex flex-col">
+                        <p className="text-bold text-small capitalize cursor-pointer"
+                         onClick={()=>handleViewClick(task.taskId)}
+                         >{cellValue}</p>
                     </div>
+                    // </Link>
                 );
             case "description":
                 return (
                     <div className="flex flex-col">
-                        <p className="text-bold text-small capitalize">{cellValue}</p>
+                        <p className="text-bold text-small capitalize cursor-pointer" onClick={()=>handleViewClick(task.taskId)}>{cellValue}</p>
                     </div>
                 );
             case "status":
@@ -561,21 +575,21 @@ export default function App() {
     const currentProject = useSelector((state: { project: { currentProject: any } }) => state.project.currentProject);
     const navigate=useNavigate();
     console.log("current Project",currentProject);
-    const fetchTasks = React.useCallback(async (projectId: string) => {
-        setLoading(() => true);
-        const response = await getTaskOfProject(projectId);
-        console.log(response);
-        setTasks(response);
-        setLoading(() => false);
-    }, []);
+    // const fetchTasks = React.useCallback(async (projectId: string) => {
+    //     setLoading(() => true);
+    //     const response = await getTaskOfProject(projectId);
+    //     console.log(response);
+    //     setTasks(response);
+    //     setLoading(() => false);
+    // }, []);
 
-    useEffect(() => {
-        if (currentProject) {
-            fetchTasks(currentProject.projectId);
-        } else if (projectId) {
-            fetchTasks(projectId);
-        }
-    }, []);
+    // useEffect(() => {
+    //     if (currentProject) {
+    //         fetchTasks(currentProject.projectId);
+    //     } else if (projectId) {
+    //         fetchTasks(projectId);
+    //     }
+    // }, []);
 
     useEffect(()=>{
         if(!isOpen){
@@ -592,7 +606,8 @@ export default function App() {
 
     const handleViewClick = (taskId: string) => {
         
-        navigate(`/task/${taskId}`);
+        navigate(`task/${taskId}`);
+        // setCanvas(()=>true);
     }
 
     const createNewTask=async()=>{
@@ -647,7 +662,7 @@ export default function App() {
         setDeleteLoading(()=>true);
         const response=await deleteTask(taskId);
         console.log(response);
-        setTasks((tasks)=>tasks.filter((task)=>task.taskId!==taskId));
+        setTasks((tasks: Task[])=>tasks.filter((task)=>task.taskId!==taskId));
         // onOpenChange();
         setDeleteLoading(()=>false);
 
@@ -695,7 +710,7 @@ export default function App() {
                 boardData: null // Add appropriate board data if any
             })
             console.log(response);
-            setTasks((tasks)=>tasks.map((task)=>task.taskId===editTaskId?response:task))
+            setTasks((tasks:Task[])=>tasks.map((task)=>task.taskId===editTaskId?response:task))
         // }
         // const response=await updateTask(editTaskId,{})
         setLoading(()=>false);
@@ -709,7 +724,7 @@ export default function App() {
             setDeleteLoading(()=>true);
             const response=await updateTaskStatus(taskId,status);
             console.log(response)
-            setTasks((tasks) =>
+            setTasks((tasks:Task[]) =>
                 tasks.map((task) =>
                   task.taskId === taskId ? { ...task, status: status as "TO_DO" | "DONE" | "IN_PROGRESS" } : task
                 )
@@ -729,7 +744,7 @@ export default function App() {
     return (
         <>
         {deleteLoading&&<Progress isIndeterminate aria-label="Loading..." className="fixed top-0 left-0 w-full z-50" size="sm" />}
-        <Table
+        {<Table
             isHeaderSticky
             aria-label="Example table with custom cells, pagination and sorting"
             bottomContent={bottomContent}
@@ -761,7 +776,10 @@ export default function App() {
             </TableRow>
             )}
             </TableBody>
-        </Table>
+        </Table>}
+        {/* <Outlet/> */}
+
+        
         
 
 
@@ -857,4 +875,7 @@ export default function App() {
         </>
     );
 }
+
+
+export default Tasks;
 

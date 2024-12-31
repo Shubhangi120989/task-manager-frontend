@@ -50,7 +50,7 @@ const currentUser = useSelector((state: { user: { currentUser: any } }) => state
     if(currentUser){
       navigate('/projects');
     }
-  }, []);
+  }, [currentUser]);
 
   return (
     <></>

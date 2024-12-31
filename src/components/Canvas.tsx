@@ -81,13 +81,45 @@ const Canvas = () => {
         [saveData]
     );
 
+    
+
+    // React.useEffect(() => {
+    //     // Attach the event listener
+    //     window.addEventListener("keydown", handleKeyDown);
+    //     return () => {
+    //         window.removeEventListener("keydown", handleKeyDown);
+    //     };
+    // }, [handleKeyDown]);
+
+
+
     React.useEffect(() => {
-        // Attach the event listener
+        // Attach the event listener for keyboard shortcuts
         window.addEventListener("keydown", handleKeyDown);
+
+        // Attach the beforeunload listener to save data on page unload
+        const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
+            await saveData();
+            toast.success("Board saved successfully.");
+            event.preventDefault();
+            event.returnValue = ""; // This is required for modern browsers
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [handleKeyDown]);
+    }, [handleKeyDown, saveData]);
+
+    const handleClose = async() => {
+        
+        window.history.back();
+        await saveData();
+        
+    };
+        
 
     // const handleGenerateLink = React.useCallback(
     //     async (access: 'view' | 'edit') => {
@@ -165,9 +197,14 @@ const Canvas = () => {
                 </WelcomeScreen>
             </Excalidraw>
         </div>
-    <div style={{ position: "absolute", bottom: 40, right: 40, zIndex: 100 }}>
-        <Button size="lg" color="primary" onPress={saveData}>
+    <div style={{ position: "absolute", bottom: 90, right: 40, zIndex: 100 }}>
+        <Button size="md" color="primary" onPress={saveData}>
            {saveLoading?<Spinner/>: "Save Board"}
+        </Button>
+    </div>
+    <div style={{ position: "absolute", bottom: 40, right: 40, zIndex: 100 }}>
+        <Button size="md" color="danger" onPress={handleClose}>
+           {"Close"}
         </Button>
     </div>
     </>

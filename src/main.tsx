@@ -17,28 +17,31 @@ import Canvas from './components/Canvas.tsx'
 // import Kanban from './components/Kanban.tsx'
 import TaskPage from './pages/TaskPage.tsx'
 import { Toaster } from 'sonner'
+import ProtectedRoute from './components/ProtecedRoute.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-     <NextUIProvider>
-    <Provider store={store}>
-    <Toaster position="top-right" richColors/>
-    <Router>
-      <Navbar />
-      
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/projects" element={<Projects />}/>
-        <Route path='/projects/:projectId' element={<TaskPage/>} />
-        <Route path="/task/:taskId" element={<Canvas/>} />
-        {/* <Route path="/projects/kanban/:projectId/" element={<Kanban />} /> */}
-        {/* Add more routes here as needed */}
-      </Routes>
-    </Router>
-    
-    </Provider>
+    <NextUIProvider>
+      <Provider store={store}>
+        <Toaster position="top-right" richColors />
+        <Router>
+          <Navbar />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<App />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:projectId" element={<TaskPage />}>
+                <Route path="task/:taskId" element={<Canvas />} />
+              </Route>
+            </Route>
+          </Routes>
+        </Router>
+      </Provider>
     </NextUIProvider>
-  </StrictMode>,
+  </StrictMode>
 )

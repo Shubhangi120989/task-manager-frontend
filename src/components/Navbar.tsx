@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { useEffect } from 'react';
 import { setCurrentUser, setError, setLoading } from '../redux/userSlice';
 import { getCurrentUser } from "../apis/user";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink, useLocation} from "react-router-dom";
 import { logoutUser } from "../apis/user";
 import {
     Navbar,
@@ -70,6 +70,7 @@ import { toast } from "sonner";
     const dispatch = useDispatch();
     // const currentUser = useSelector((state: RootState) => state.user.currentUser);
     const navigate = useNavigate();
+    const location = useLocation();
     useEffect(() => {
         const fetchUser = async () => {
           dispatch(setLoading(true));
@@ -105,6 +106,9 @@ import { toast } from "sonner";
         navigate('/');
         
     }
+    // const handleClick=()=>{
+    //   navigate('/');
+    // }
 
 
 
@@ -114,19 +118,29 @@ import { toast } from "sonner";
         <NavbarContent justify="start">
           <NavbarBrand className="mr-4">
             {/* <AcmeLogo /> */}
-            <Link href="/"><p className="hidden sm:block font-bold text-inherit">TASK MANAGER</p></Link>
+            <RouterLink to="/"><p className="hidden sm:block font-bold text-inherit">TASK MANAGER</p></RouterLink>
+           
           </NavbarBrand>
           <NavbarContent className="hidden sm:flex gap-3">
             {currentUser && (
-            <NavbarItem isActive={window.location.pathname === "/projects"}>
-              <Link 
+            <NavbarItem isActive={location.pathname === "/projects"}>
+              <RouterLink 
               aria-current="page" 
               color="primary" 
-              href="/projects"
+              to="/projects"
               style={{ fontWeight: window.location.pathname === "/projects" ? 'bold' : 'normal', textDecoration: window.location.pathname === "/projects" ? 'underline' : 'none' }}
               >
               PROJECTS
-              </Link>
+              </RouterLink>
+              {/* <RouterLink 
+          to="/projects"
+          style={{ 
+            fontWeight: location.pathname === "/projects" ? 'bold' : 'normal', 
+            textDecoration: location.pathname === "/projects" ? 'underline' : 'none' 
+          }}
+        >
+          PROJECTS
+        </RouterLink> */}
             </NavbarItem>
             )}
             {/* {currentProject && (
