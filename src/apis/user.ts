@@ -1,4 +1,5 @@
 
+import { User } from '../types/user';
 import client from './client';  // Adjust the import path based on your file structure
 // import avatarPath from '../assets/avatar.jpg';  // Import the default avatar image
 export const getCurrentUser = async () => {
@@ -56,3 +57,13 @@ export const registerUser = async (
         throw new Error(error.response?.data || "Failed to register user");
     }
 };
+
+export const searchUserName=async(query:string) : Promise<User[]>=>{
+    try {
+        const response = await client.get(`/users/search?query=${query}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching current user:', error);
+        throw error;  // Propagate error to handle in the calling component
+    }
+}

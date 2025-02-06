@@ -1,5 +1,5 @@
 import React, {SVGProps, useEffect} from "react";
-import { createProject, getAllProjects,deleteProject, updateProject } from "../apis/project";
+import { createProject,deleteProject, updateProject } from "../apis/project";
 import { Project } from "../types/project";
 
 import { useDispatch } from "react-redux";
@@ -21,6 +21,7 @@ import {
   Pagination,
   Selection,
   SortDescriptor,
+  User,
   // user,
 } from "@nextui-org/react";
 
@@ -39,10 +40,11 @@ import {
 import {Spinner,Progress} from "@nextui-org/react";
 // import { set } from "lodash";
 import { toast } from "sonner";
+import { Action, hasPermission, RoleType } from "../types/projectPermissions";
 // import { p, pre } from "framer-motion/client";
 // import { set } from "lodash";
 // import { use } from "framer-motion/client";
-
+import {Avatar, AvatarGroup, Tooltip} from "@nextui-org/react";
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
@@ -51,9 +53,11 @@ export const columns = [
   {name: "ID", uid: "projectId", sortable: true},
   {name: "TITLE", uid: "title"},
   {name: "DESCRIPTION", uid: "description"},
+  {name:"OWNER",uid:"owner"},
   {name:"CREATED AT", uid:"createdAt",sortable:true},
   {name:"UPDATED AT",uid:"updatedAt"},
   {name: "ACTIONS", uid: "actions"},
+
 ];
 
 
@@ -171,17 +175,28 @@ export const ChevronDownIcon = ({strokeWidth = 1.5, ...otherProps}: IconSvgProps
 
 
 
-const INITIAL_VISIBLE_COLUMNS = ["title", "description", "createdAt", "updatedAt", "actions"];
+
 
 // type Project = (typeof projects)[0];
 
-export default function App() {
+interface ProjectPageProps {
+  projects: Project[];
+  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  loading:boolean;
+  setLoading:React.Dispatch<React.SetStateAction<boolean>>;
+  roleInProject: RoleType
+  
+}
+// export default function App() {
+
+const Projects:React.FC<ProjectPageProps>=({projects,setProjects,loading,setLoading,roleInProject})=>{
+  const INITIAL_VISIBLE_COLUMNS = roleInProject==="OWNER"?["title", "description", "createdAt", "updatedAt", "actions"]:["title", "description", "owner", "createdAt", "actions"];
   const [filterValue, setFilterValue] = React.useState("");
   const [visibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const [page, setPage] = React.useState(1);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({ column: "createdAt", direction: "ascending" });
-  const [projects, setProjects] = React.useState<Project[]>([]);
+  // const [projects, setProjects] = React.useState<Project[]>([]);
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
   // const [projectChanged, setProjectChanged] = React.useState(false);
   const [title, setTitle] = React.useState("");
@@ -190,7 +205,7 @@ export default function App() {
   // const [onCreate, setOnCreate] = React.useState(false);
   const pages = Math.ceil(projects.length / rowsPerPage);
   const [editProjectId, setEditProjectId] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
+  // const [loading, setLoading] = React.useState(false);
   const [uploadLoading, setUploadLoading] = React.useState(false);
 
 
@@ -199,7 +214,7 @@ export default function App() {
 
   const handleOnViewClick=(project: Project)=>{
     dispatch(setCurrentProject(project));
-    navigate(`/projects/${project.projectId}`);
+    navigate(`/projects/${project.projectId}/${roleInProject}`);
 
 
 
@@ -248,22 +263,22 @@ export default function App() {
   setUploadLoading(()=>false);
 }
 
-  React.useEffect(() => {
-    async function fetchProjects() {
-      setLoading(()=>true);
-      try {
-        const response = await getAllProjects();
-        console.log(response);
+  // React.useEffect(() => {
+  //   async function fetchProjects() {
+  //     setLoading(()=>true);
+  //     try {
+  //       const response = await getAllProjects();
+  //       console.log(response);
 
-        setProjects(response);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      }
-      setLoading(()=>false);
-    }
+  //       setProjects(response);
+  //     } catch (error) {
+  //       console.error('Error fetching projects:', error);
+  //     }
+  //     setLoading(()=>false);
+  //   }
 
-    fetchProjects();
-  }, []);
+  //   fetchProjects();
+  // }, []);
 
   React.useEffect(() => {
     setTitle("");
@@ -364,15 +379,39 @@ console.log("items",items);
       case "title":
       return (
         <div className="flex flex-col">
-        <p className="text-bold text-small capitalize cursor-pointer" onClick={() => handleOnViewClick(project)}>{cellValue}</p>
+        <p className="text-bold text-small capitalize cursor-pointer" onClick={() => handleOnViewClick(project)}>{String(cellValue)}</p>
+        <div className="mt-2 pl-4">
+        <AvatarGroup isBordered max={3} size="sm">
+        
+          {project.roles?.map((role) => (<Tooltip content={role.user.name}><Avatar src={role.user.avatarUrl} /></Tooltip> ))}
+         
+          </AvatarGroup>
+        </div>
+       
         </div>
       );
       case "description":
       return (
         <div className="flex flex-col">
-        <p className="text-bold text-small capitalize cursor-pointer" onClick={() => handleOnViewClick(project)}>{cellValue}</p>
+          
+        <p className="text-bold text-small capitalize cursor-pointer" onClick={() => handleOnViewClick(project)}>{String(cellValue)}</p>
         </div>
       );
+      case "owner":
+        return (
+          <User
+            avatarProps={{
+              src: project.user.avatarUrl,
+            }}
+            description={
+              <div>
+                {project.user.username}
+
+              </div>
+            }
+            name={project.user.name}
+          />
+        );
       case "createdAt":
       case "updatedAt":
       if(!cellValue) return null;
@@ -393,9 +432,9 @@ console.log("items",items);
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view" onPress={()=>handleOnViewClick(project)}>View Tasks</DropdownItem>
-                <DropdownItem key="edit" onPress={()=>editProject(project.projectId,project.title,project.description)}>Edit</DropdownItem>
-                <DropdownItem key="delete" onPress={()=>deleteProjectApp(project.projectId)}>Delete</DropdownItem>
+                {hasPermission("Project", roleInProject, Action.VIEW) ? <DropdownItem key="view" onPress={() => handleOnViewClick(project)}>View Tasks</DropdownItem> : null}
+                {hasPermission("Project",roleInProject,Action.UPDATE)?<DropdownItem key="edit" onPress={()=>editProject(project.projectId,project.title,project.description)}>Edit</DropdownItem>:null}
+                {hasPermission("Project",roleInProject,Action.DELETE)?<DropdownItem key="delete" onPress={()=>deleteProjectApp(project.projectId)}>Delete</DropdownItem>:null}
               </DropdownMenu>
             </Dropdown>
           </div>
@@ -437,11 +476,14 @@ console.log("items",items);
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
+         
+
+
           <div className="flex gap-3">
             <>
-            <Button onPress={onOpen} color="primary"  endContent={<PlusIcon />} >
-              Add New
-            </Button>
+            {hasPermission("Project",roleInProject,Action.CREATE)&&<Button onPress={onOpen} color="primary"  endContent={<PlusIcon />} >
+              Create New Project
+            </Button>}
 
             
       </>
@@ -563,8 +605,8 @@ console.log("items",items);
       </TableHeader>
       <TableBody emptyContent={loading?<Spinner/>:"No projects found"} items={items}>
         {(item) => (
-          <TableRow key={item.projectId} className="hover:bg-default-100">
-            {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+          <TableRow key={item.projectId} className="hover:bg-default-100 p-3">
+            {(columnKey) => <TableCell>{renderCell(item, columnKey) as React.ReactNode}</TableCell>}
           </TableRow>
         )}
       </TableBody>
@@ -619,3 +661,5 @@ console.log("items",items);
 
   );
 }
+
+export default Projects;

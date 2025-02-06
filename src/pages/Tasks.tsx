@@ -46,8 +46,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
 // import { set } from "lodash";
 import { Spinner } from "@nextui-org/react";
+import { Action, hasPermission, RoleType } from "../types/projectPermissions";
+import { addRole } from "../apis/project";
+import { toast } from "sonner";
 // import { set } from "lodash";
 // import { Skeleton } from "@nextui-org/react";
+import {Autocomplete, AutocompleteItem, Avatar} from "@nextui-org/react";
+import { User } from "../types/user";
+import { searchUserName } from "../apis/user";
+import { deleteRoleByProject } from "../apis/project";
+// import { nav } from "framer-motion/client";
+// import { set } from "lodash";
+
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
     size?: number;
@@ -157,6 +167,32 @@ export const ChevronDownIcon = ({strokeWidth = 1.5, ...otherProps}: IconSvgProps
     );
 };
 
+interface LockIconProps extends SVGProps<SVGSVGElement> {}
+
+export const LockIcon = (props: LockIconProps) => {
+    return (
+      <svg
+        aria-hidden="true"
+        fill="none"
+        focusable="false"
+        height="1em"
+        role="presentation"
+        viewBox="0 0 24 24"
+        width="1em"
+        {...props}
+      >
+        <path
+          d="M12.0011 17.3498C12.9013 17.3498 13.6311 16.6201 13.6311 15.7198C13.6311 14.8196 12.9013 14.0898 12.0011 14.0898C11.1009 14.0898 10.3711 14.8196 10.3711 15.7198C10.3711 16.6201 11.1009 17.3498 12.0011 17.3498Z"
+          fill="currentColor"
+        />
+        <path
+          d="M18.28 9.53V8.28C18.28 5.58 17.63 2 12 2C6.37 2 5.72 5.58 5.72 8.28V9.53C2.92 9.88 2 11.3 2 14.79V16.65C2 20.75 3.25 22 7.35 22H16.65C20.75 22 22 20.75 22 16.65V14.79C22 11.3 21.08 9.88 18.28 9.53ZM12 18.74C10.33 18.74 8.98 17.38 8.98 15.72C8.98 14.05 10.34 12.7 12 12.7C13.66 12.7 15.02 14.06 15.02 15.72C15.02 17.39 13.67 18.74 12 18.74ZM7.35 9.44C7.27 9.44 7.2 9.44 7.12 9.44V8.28C7.12 5.35 7.95 3.4 12 3.4C16.05 3.4 16.88 5.35 16.88 8.28V9.45C16.8 9.45 16.73 9.45 16.65 9.45H7.35V9.44Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+};
+
 export const columns = [
     {name: "TITLE", uid: "title"},
     {name: "DESCRIPTION", uid: "description"},
@@ -167,6 +203,57 @@ export const columns = [
     {name:"UPDATED AT",uid:"updatedAt"},
     {name: "ACTIONS", uid: "actions"},
 ];
+
+export const DeleteIcon = (props: IconSvgProps) => {
+    return (
+      <svg
+        aria-hidden="true"
+        fill="none"
+        focusable="false"
+        height="1em"
+        role="presentation"
+        viewBox="0 0 20 20"
+        width="1em"
+        {...props}
+      >
+        <path
+          d="M17.5 4.98332C14.725 4.70832 11.9333 4.56665 9.15 4.56665C7.5 4.56665 5.85 4.64998 4.2 4.81665L2.5 4.98332"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+        />
+        <path
+          d="M7.08331 4.14169L7.26665 3.05002C7.39998 2.25835 7.49998 1.66669 8.90831 1.66669H11.0916C12.5 1.66669 12.6083 2.29169 12.7333 3.05835L12.9166 4.14169"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+        />
+        <path
+          d="M15.7084 7.61664L15.1667 16.0083C15.075 17.3166 15 18.3333 12.675 18.3333H7.32502C5.00002 18.3333 4.92502 17.3166 4.83335 16.0083L4.29169 7.61664"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+        />
+        <path
+          d="M8.60834 13.75H11.3833"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+        />
+        <path
+          d="M7.91669 10.4167H12.0834"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+        />
+      </svg>
+    );
+  };
 
 export const statusOptions = [
     {name: "TO_DO", uid: "TO_DO"},
@@ -237,6 +324,7 @@ interface TasksProps {
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     loading:boolean;
     setLoading:React.Dispatch<React.SetStateAction<boolean>>;
+    // roleInTask:RoleType;
   
   }
   
@@ -254,6 +342,10 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
     // const [tasks, setTasks] = React.useState<Task[]>([]);
 
     const {isOpen, onOpen, onOpenChange} = useDisclosure();
+    const {isOpen: isCollabOpen, onOpen: onCollabOpen, onOpenChange: onCollabOpenChange} = useDisclosure();
+    const {isOpen: isDeleteOpen, onOpen: onDeleteOpen, onOpenChange: onDeleteOpenChange} = useDisclosure();
+    
+
     const [title, setTitle] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [taskPriority, setTaskPriority] = React.useState<"LOW" | "MEDIUM" | "HIGH" | "URGENT">("LOW");
@@ -261,12 +353,27 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
     const [editTaskId, setEditTaskId] = React.useState<string | null>(null);
     const [status, setStatus] = React.useState<"TO_DO"|"DONE"|"IN_PROGRESS">( "TO_DO"); 
     // const[loading,setLoading]=React.useState(false); 
-    const [deleteLoading,setDeleteLoading]=React.useState(false); 
+    const [deleteLoading,setDeleteLoading]=React.useState(false);
+    const [username,setUsername]=React.useState<string>(""); 
+    // const [roleChosen,setRoleChosen]=React.useState<"VIEWER"|"EDITOR">("VIEWER");
+    const [selectedKeys, setSelectedKeys] = React.useState<Set<React.Key>>(new Set(["VIEWER"]));
+    const selectedValue :RoleType= React.useMemo(
+        () => Array.from(selectedKeys).join(", ").replace(/_/g, "") as RoleType,
+        [selectedKeys],
+      );
+
+    const [users,setUsers]=React.useState<User[]>([]);
     // const [canvas,setCanvas]=React.useState(false);   
     
     const params = useParams(); // Fixed typo from 'prams' to 'params'
     const projectId = params.projectId;
+    const role: RoleType = params.role as RoleType;
     
+
+    const handleSearchChange = async (query: string) => {
+        const filteredUsers= await searchUserName(query);
+        setUsers(filteredUsers);
+    };
 
 
 
@@ -362,7 +469,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
                                      {cellValue}
                               </Chip>
                             </DropdownTrigger>
-                            <DropdownMenu>
+                            {hasPermission("Task",role,Action.UPDATE)&&<DropdownMenu>
                                 <DropdownItem key="done" onPress={()=>handleStatusChange(task.taskId,"DONE",task.status)}><Chip className="capitalize cursor-pointer" color={statusColorMap["DONE"]} size="sm" variant="flat">
                                      DONE
                               </Chip></DropdownItem>
@@ -372,7 +479,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
                                 <DropdownItem key="to_do" onPress={()=>handleStatusChange(task.taskId,"TO_DO",task.status)}><Chip className="capitalize cursor-pointer" color={statusColorMap["TO_DO"]} size="sm" variant="flat">
                                      TO_DO
                               </Chip></DropdownItem>
-                            </DropdownMenu>
+                            </DropdownMenu>}
                         </Dropdown>
 
 
@@ -408,9 +515,9 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu>
-                                <DropdownItem key="view" onPress={()=>handleViewClick(task.taskId)}>View Board</DropdownItem>
-                                <DropdownItem key="edit" onPress={()=>handleEditClick(task)}>Edit</DropdownItem>
-                                <DropdownItem key="delete" onPress={()=>handleDeleteTask(task.taskId)}>Delete</DropdownItem>
+                                {hasPermission("Task",role,Action.VIEW)?<DropdownItem key="view" onPress={()=>handleViewClick(task.taskId)}>View Board</DropdownItem>:null}
+                                {hasPermission("Task",role,Action.UPDATE)?<DropdownItem key="edit" onPress={()=>handleEditClick(task)}>Edit</DropdownItem>:null}
+                                {hasPermission("Task",role,Action.DELETE)?<DropdownItem key="delete" onPress={()=>handleDeleteTask(task.taskId)}>Delete</DropdownItem>:null}
                             </DropdownMenu>
                         </Dropdown>
                     </div>
@@ -510,9 +617,15 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        <Button color="primary" endContent={<PlusIcon />} onPress={onOpen}>
-                            Add New
-                        </Button>
+
+                        {hasPermission("Project",role,Action.ADD_USER)?<Button color="primary" startContent={<LockIcon />} onPress={onCollabOpen}>
+                            Add Collaborator
+                        </Button>:<Button color="danger" onPress={onDeleteOpen} startContent={<DeleteIcon/>}>
+                                                              Leave Project
+                                                        </Button>}
+                        {hasPermission("Task",role,Action.CREATE)&&<Button color="primary" endContent={<PlusIcon />} onPress={onOpen}>
+                            Create New Task
+                        </Button>}
                     </div>
                 </div>
                 <div className="flex justify-between items-center">
@@ -575,6 +688,8 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
     const currentProject = useSelector((state: { project: { currentProject: any } }) => state.project.currentProject);
     const navigate=useNavigate();
     console.log("current Project",currentProject);
+
+    
     // const fetchTasks = React.useCallback(async (projectId: string) => {
     //     setLoading(() => true);
     //     const response = await getTaskOfProject(projectId);
@@ -598,9 +713,21 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
             setDescription("");
             setTaskPriority("LOW");
             setTaskDeadlineDate(null);
+            
         }
 
     },[isOpen])
+
+    useEffect(()=>{
+        if(!isCollabOpen){
+            setUsername(()=>"");
+            setSelectedKeys(new Set(["VIEWER"]));
+            
+        }
+
+    },[isCollabOpen])
+
+
     
 
 
@@ -737,6 +864,43 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
 
     }
 
+    const handleAddUser=async()=>{
+        onCollabOpenChange();
+        try{
+            if (projectId) {
+                setDeleteLoading(()=>true);
+                await addRole(projectId, username, selectedValue);
+                setDeleteLoading(()=>false);
+            } else {
+                console.error("Project ID is undefined");
+            }
+
+            toast.success("User added successfully");
+        }catch(e){
+            toast.error("Error adding user. " + (e as any).message);
+        }
+        
+    }
+
+    const handleDeleteRole=async()=>{
+        // onCollabOpenChange();
+        try{
+
+            if (projectId) {
+                setDeleteLoading(()=>true);
+                await deleteRoleByProject(projectId);
+                setDeleteLoading(()=>false);
+            } else {
+                console.error("Project ID is undefined");
+            }
+            navigate("/projects");
+
+            toast.success("Project left successfully");
+        }catch(e){
+            toast.error("Error removing user. " + (e as any).message);
+        }
+    }
+
 
 
 
@@ -868,13 +1032,158 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks,loading,setLoading })=> {
           </Modal>
 
 
+          <Modal
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
+        isOpen={isCollabOpen}
+        onOpenChange={onCollabOpenChange}
+          >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1 text-primary-500" >Add Collaborator in "{currentProject?currentProject.title:"this Project"}"</ModalHeader>
+              <ModalBody>
+              <div className="flex justify-center">
+              <Autocomplete
+              aria-label="Select an employee"
+              classNames={{
+            base: "max-w-xs",
+            listboxWrapper: "max-h-[320px]",
+            selectorButton: "text-default-500",
+              }}
+              defaultItems={users}
+              inputProps={{
+            classNames: {
+              input: "ml-1",
+              inputWrapper: "h-[48px]",
+            },
+            value: username,
+            onChange: (e) => {
+              const value = e.target.value;
+              setUsername(value);
+              handleSearchChange(value);
+            },
+              }}
+              listboxProps={{
+            hideSelectedIcon: true,
+            itemClasses: {
+              base: [
+                "rounded-medium",
+                "text-default-500",
+                "transition-opacity",
+                "data-[hover=true]:text-foreground",
+                "dark:data-[hover=true]:bg-default-50",
+                "data-[pressed=true]:opacity-70",
+                "data-[hover=true]:bg-default-200",
+                "data-[selectable=true]:focus:bg-default-100",
+                "data-[focus-visible=true]:ring-default-500",
+              ],
+            },
+              }}
+              placeholder="Enter username"
+              popoverProps={{
+            offset: 10,
+            classNames: {
+              base: "rounded-large",
+              content: "p-1 border-small border-default-100 bg-background",
+            },
+              }}
+              radius="full"
+              startContent={<SearchIcon className="text-default-400" size={20} strokeWidth={2.5} />}
+              variant="bordered"
+            >
+              {(item) => (
+            <AutocompleteItem key={item.username} textValue={item.username}>
+              <div className="flex justify-between items-center" onClick={() => setUsername(item.username)}>
+                <div className="flex gap-2 items-center">
+                  <Avatar alt={item.name} className="flex-shrink-0" size="sm" src={item.avatarUrl} />
+                  <div className="flex flex-col">
+                <span className="text-small">{item.name}</span>
+                  </div>
+                </div>
+                <Button
+                  className="border-small mr-0.5 font-medium shadow-small"
+                  radius="full"
+                  size="sm"
+                  variant="bordered"
+                >
+                  Add
+                </Button>
+              </div>
+            </AutocompleteItem>
+              )}
+            </Autocomplete>
+            </div>
+            <Dropdown>
+              <DropdownTrigger>
+            <Button className="capitalize"  endContent={<ChevronDownIcon />}>
+              {selectedValue}
+            </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+            disallowEmptySelection
+            aria-label="Single selection example"
+            selectedKeys={selectedKeys as unknown as Iterable<import("@react-types/shared").Key>}
+            selectionMode="single"
+            variant="flat"
+            onSelectionChange={(keys) => setSelectedKeys(new Set(keys as unknown as React.Key[]))}
+              >
+            <DropdownItem key="VIEWER">VIEWER</DropdownItem>
+            <DropdownItem key="EDITOR">EDITOR</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+              </ModalBody>
+              <ModalFooter>
+            <Button color="danger" variant="light" onPress={onClose}>
+              Close
+            </Button>
+            <Button color="primary" onPress={()=>handleAddUser()} >
+              Add
+            </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+          </Modal>
+
+
+           <Modal
+                  backdrop="opaque"
+                  classNames={{
+                    backdrop: "bg-gradient-to-t from-zinc-900 to-zinc-900/10 backdrop-opacity-20",
+                  }}
+                  isOpen={isDeleteOpen}
+                  onOpenChange={onDeleteOpenChange}
+                >
+                  <ModalContent>
+                    {(onClose) => (
+                      <>
+                        <ModalHeader className="flex flex-col gap-1">Confirm</ModalHeader>
+                        <ModalBody>
+                          <p>
+                           Are you sure, you want to remove this collaborator?
+                          </p>
+                         
+                        </ModalBody>
+                        <ModalFooter>
+                          <Button color="danger" variant="light" onPress={onClose}>
+                            Cancel
+                          </Button>
+                          
+                            {deleteLoading?<Spinner/>:<Button color="primary" onPress={()=>handleDeleteRole()}> Remove</Button>}
+                         
+                        </ModalFooter>
+                      </>
+                    )}
+                  </ModalContent>
+                </Modal>
 
 
 
 
         </>
-    );
-}
+        );
+    }
 
 
 export default Tasks;

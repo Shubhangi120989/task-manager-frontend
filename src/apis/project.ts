@@ -2,6 +2,8 @@
 import client from "./client";
 
 import { Project} from "../types/project";
+import { RoleType } from "../types/projectPermissions";
+import { Role } from "../types/role";
 
 // const API_BASE_URL = "http://localhost:8080/api"; // Update this as per your backend URL
 
@@ -99,3 +101,68 @@ export async function updateProject(
         throw error;
     }
 }
+
+export async function addRole(projectId: string,username:string,role:RoleType): Promise<Role> {
+    try {
+        const formData = new FormData();
+        formData.append("username", username);
+        formData.append("role", role);
+        const response = await client.post<Role>(
+        `/projects/${projectId}/add-role`,formData,{headers:{"Content-Type":"multipart/form-data"}}
+        );
+        return response.data;
+    } catch (error) {
+        console.error(`Error updating project with ID ${projectId}:`, error);
+        throw error;
+    }
+}
+
+
+export async function getProjectsWithViewPermission():Promise<Project[]>{
+    try{
+        const response = await client.get<Project[]>(`/projects/view`);
+        return response.data;
+    }
+    catch(error){
+        console.error("Error fetching projects:", error);
+        throw error;
+    }
+}
+
+export async function getProjectsWithEditPersmission():Promise<Project[]>{
+    try{
+        const response = await client.get<Project[]>(`/projects/edit`);
+        return response.data;
+    }
+    catch(error){
+        console.error("Error fetching projects:", error);
+        throw error;
+    }
+} 
+
+
+export async function deleteRole(roleId: string): Promise<string> {
+    try {
+        const response = await client.delete<string>(`/delete-role/${roleId}`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error deleting role with ID ${roleId}:`, error);
+        throw error;
+    }
+}
+
+export async function deleteRoleByProject(projectId:string):Promise<string>{
+    try{
+        const response = await client.delete<string>(`/delete-role/project/${projectId}`);
+        return response.data;
+    }
+    catch(error){
+        console.error(`Error deleting role with ID ${projectId}:`, error);
+        throw error;
+    }
+}
+
+
+// type Role= "VIEWER"|"EDITOR"|"OWNER";
+
+
